@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Platform, Text, View, StyleSheet } from 'react-native';
 
+import PermissionsButton from './permissions-button';
 import * as Device from 'expo-device';
 
 import * as Location from 'expo-location';
 
 export default function walk() {
-  const [location, setLocation] = useState<Location.LocationObject | null>(null);
+  const [location, setLocation] = useState<Location.LocationObject | null>(
+    null,
+  );
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -18,12 +21,16 @@ export default function walk() {
         return;
       }
       let { status } = await Location.requestForegroundPermissionsAsync();
+      console.log('foregroundStatus:', status);
       if (status !== 'granted') {
         setErrorMsg('Permission to access location was denied');
         return;
       }
 
       let location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+      console.log(`Latitude: ${latitude}, Longitude: ${longitude}`);
+      console.log('Location:', location);
       setLocation(location);
     }
 
@@ -40,6 +47,7 @@ export default function walk() {
   return (
     <View style={styles.container}>
       <Text style={styles.paragraph}>{text}</Text>
+      <PermissionsButton />
     </View>
   );
 }
