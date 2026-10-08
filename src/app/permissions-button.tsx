@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, View, StyleSheet } from 'react-native';
+import { Button, Platform, View, StyleSheet } from 'react-native';
 import * as TaskManager from 'expo-task-manager';
 import * as Location from 'expo-location';
 
@@ -10,6 +10,21 @@ const requestPermissions = async () => {
 
 
   console.log('foregroundStatus:', foregroundStatus);
+  if (foregroundStatus !== 'granted') {
+    return;
+  }
+
+  console.log(Platform.OS);
+  if (Platform.OS === 'web') {
+  }
+  await Location.watchPositionAsync(
+    {
+      accuracy: Location.Accuracy.Balanced,
+    },
+    (location) => {
+      console.log('location:', location);
+    }
+  );
   if (foregroundStatus === 'granted') {
     const { status: backgroundStatus } = await Location.requestBackgroundPermissionsAsync();
     console.log('backgroundStatus:', backgroundStatus);
@@ -23,7 +38,14 @@ const requestPermissions = async () => {
 
 const PermissionsButton = () => (
   <View style={styles.container}>
-    <Button onPress={requestPermissions} title="Enable background location" />
+    <Button
+      onPress={requestPermissions}
+      title={
+        Platform.OS === 'web'
+          ? 'Enable Foreground Location'
+          : 'Enable Background Location'
+      }
+    />
   </View>
 );
 
