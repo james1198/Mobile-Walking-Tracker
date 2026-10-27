@@ -1,8 +1,7 @@
-import PermissionsButton from "@/components/permissions-button";
 import Constants from "expo-constants";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, Platform, StyleSheet, Text, View } from "react-native";
 
 Notifications.setNotificationHandler({
@@ -15,7 +14,7 @@ Notifications.setNotificationHandler({
 });
 
 async function registerForPushNotificationsAsync() {
-  let token: string | undefined;
+  if (Platform.OS === "web") return "undetermined";
 
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("myNotificationChannel", {
@@ -28,149 +27,222 @@ async function registerForPushNotificationsAsync() {
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
-
   if (existingStatus !== "granted") {
     const { status } = await Notifications.requestPermissionsAsync();
     finalStatus = status;
   }
-
   if (finalStatus !== "granted") {
-    alert("Failed to get push token for push notification!");
-    return;
+    return finalStatus;
+  }
+  
+  const projectId =
+    Constants?.expoConfig?.extra?.eas?.projectId ??
+    Constants?.easConfig?.projectId;
+  if (!projectId) {
+    throw new Error("Project ID not found");
   }
 
-  try {
-    const projectId =
-      Constants?.expoConfig?.extra?.eas?.projectId ??
-      Constants?.easConfig?.projectId;
-
-    if (!projectId) {
-      throw new Error("Project ID not found");
-    }
-
-    token = (
-      await Notifications.getExpoPushTokenAsync({
-        projectId,
-      })
-    ).data;
-    console.log(token);
-  } catch (e) {
-    token = `${e}`;
-  }
-
-  return token;
-}
-
-async function schedulePushNotification() {
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: "You've got mail! 📬",
-      body: "Here is the notification body",
-      data: { data: "goes here", test: { test1: "more data" } },
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds: 2,
-    },
-  });
+  await Notifications.getExpoPushTokenAsync({ projectId });
+  return finalStatus; // Return 'granted'
 }
 
 export default function WalkScreen() {
-  const [location, setLocation] = useState<Location.LocationObject | null>(
-    null,
-  );
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
+  const [status, setStatus] = useState<"idle" | "running" | "paused">("idle");
+  
+  const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [expoPushToken, setExpoPushToken] = useState("");
-  const [channels, setChannels] = useState<Notifications.NotificationChannel[]>(
-    [],
-  );
-  const [notification, setNotification] = useState<
-    Notifications.Notification | undefined
-  >(undefined);
 
-  useEffect(() => {
-    async function getCurrentLocation() {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
+  const [notificationPermission, setNotificationPermission] = useState<string>("undetermined");
+
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const trackingRef = useRef<Location.LocationSubscription | null>(null);
+  const isStartingRef = useRef(false);
+
+  const startTimer = () => {
+    if (timerRef.current !== null) return;
+    timerRef.current = setInterval(() => {
+      setElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+  };
+
+  const stopTimer = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setElapsedSeconds(0);
+  };
+
+  const startWalk = async () => {
+    if (trackingRef.current !== null || isStartingRef.current) return;
+
+    isStartingRef.current = true;
+    setErrorMsg(null);
+    try {
+      const { status: permissionStatus } =
+        await Location.requestForegroundPermissionsAsync();
+      if (permissionStatus !== "granted") {
         setErrorMsg("Permission to access location was denied");
         return;
       }
 
-      const currentLocation = await Location.getCurrentPositionAsync({});
-      console.log(currentLocation);
-      const { latitude, longitude } = currentLocation.coords;
-      console.log(latitude, longitude);
-      setLocation(currentLocation);
-    }
-
-    async function setupNotification() {
-      registerForPushNotificationsAsync().then(
-        (token) => token && setExpoPushToken(token),
+      trackingRef.current = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          timeInterval: 2000,
+          distanceInterval: 1,
+        },
+        (newLocation) => {
+          setLocation(newLocation);
+        },
       );
+      
+      setStatus("running");
+      startTimer(); 
+    } catch (error) {
+      console.error("Unable to start walk tracking:", error);
+      setErrorMsg("Unable to start location tracking. Please try again.");
+    } finally {
+      isStartingRef.current = false;
+    }
+  };
 
-      if (Platform.OS === "android") {
-        Notifications.getNotificationChannelsAsync().then((value) =>
-          setChannels(value ?? []),
-        );
-      }
+  const pauseWalk = () => {
+    if (trackingRef.current) {
+      trackingRef.current.remove();
+      trackingRef.current = null;
+    }
+    
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
+    setStatus("paused");
+  };
 
-      const notificationListener =
-        Notifications.addNotificationReceivedListener((notificationEvent) => {
-          setNotification(notificationEvent);
-        });
+  const resumeWalk = () => {
+    if (status === "paused") {
+      void startWalk();
+    }
+  };
 
-      const responseListener =
-        Notifications.addNotificationResponseReceivedListener((response) => {
-          console.log(response);
-        });
+  const stopWalk = () => {
+    if (trackingRef.current) {
+      trackingRef.current.remove();
+      trackingRef.current = null;
+    }
+    
+    stopTimer();
+    setStatus("idle");
+    setLocation(null);
+  };
 
-      return () => {
-        notificationListener.remove();
-        responseListener.remove();
-      };
+  const handleRequestNotificationPermission = async () => {
+    try {
+      const finalStatus = await registerForPushNotificationsAsync();
+      setNotificationPermission(finalStatus);
+    } catch (error) {
+      console.error("Failed setting notification permissions manually:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (Platform.OS === "web") {
+      return;
     }
 
-    getCurrentLocation();
-    setupNotification();
+    Notifications.getPermissionsAsync().then(({ status }) => {
+      setNotificationPermission(status);
+    });
+
+    registerForPushNotificationsAsync()
+      .then((finalStatus) => {
+        setNotificationPermission(finalStatus);
+      })
+      .catch((error: unknown) => {
+        console.error("Unable to register for push notifications:", error);
+      });
+
+    const responseListener =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        console.log(response);
+      });
+
+    return () => {
+      responseListener.remove();
+      trackingRef.current?.remove();
+      trackingRef.current = null;
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, []);
 
-  let text = "Waiting...";
+  const formatTime = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  };
 
-  if (errorMsg) {
+  let text = "Press Start to begin your walk.";
+  if (status === "paused") {
+    text = "Walk Paused.";
+  } else if (errorMsg) {
     text = errorMsg;
   } else if (location) {
-    const { latitude, longitude } = location.coords ?? {
-      latitude: "N/A",
-      longitude: "N/A",
-    };
-  
-    text = `Latitude: ${latitude}, Longitude: ${longitude}`;
+    const { latitude, longitude } = location.coords;
+    text = `Latitude: ${latitude}\nLongitude: ${longitude}`;
   }
+
+  const getPermissionStyles = () => {
+    switch (notificationPermission) {
+      case "granted": return { text: "APPROVED", color: "green" };
+      case "denied": return { text: "DENIED", color: "red" };
+      default: return { text: "NOT REQUESTED YET", color: "orange" };
+    }
+  };
+  const permissionUI = getPermissionStyles();
 
   return (
     <View style={styles.container}>
-      <PermissionsButton title="Start Walk" />
-      <Text style={styles.paragraph}>{text}</Text>
-      <Text>Your expo push token: {expoPushToken}</Text>
-      <Text>{`Channels: ${JSON.stringify(
-        channels.map((c) => c.id),
-        null,
-        2,
-      )}`}</Text>
-      <View style={styles.notificationBox}>
-        <Text>Title: {notification ? notification.request.content.title : "—"}</Text>
-        <Text>Body: {notification ? notification.request.content.body : "—"}</Text>
-        <Text>
-          Data: {notification ? JSON.stringify(notification.request.content.data) : "—"}
+      <View style={styles.notificationStatusBlock}>
+        <Text style={styles.notificationLabel}>
+          Notifications:{" "}
+          <Text style={[styles.notificationBadge, { color: permissionUI.color }]}>
+            {permissionUI.text}
+          </Text>
         </Text>
+        {notificationPermission !== "granted" && (
+          <Button 
+            title="Ask Permission" 
+            onPress={() => void handleRequestNotificationPermission()} 
+          />
+        )}
       </View>
 
-      <Button
-        title="Press to schedule a notification"
-        onPress={async () => {
-          await schedulePushNotification();
-        }}
-      />
+      <Text style={styles.statusText}>STATUS: {status.toUpperCase()}</Text>
+      
+      <Text style={styles.timerText}>{formatTime(elapsedSeconds)}</Text>
+
+      <Text style={styles.paragraph}>{text}</Text>
+
+      <View style={styles.buttonContainer}>
+        {status === "idle" && (
+          <Button title="Start Walk" onPress={() => void startWalk()} />
+        )}
+
+        {status === "running" && (
+          <Button title="Pause" onPress={pauseWalk} color="#ffa500" />
+        )}
+
+        {status === "paused" && (
+          <Button title="Resume" onPress={resumeWalk} color="#008000" />
+        )}
+
+        {status !== "idle" && (
+          <Button title="Stop Walk" onPress={stopWalk} color="#ff4d4d" />
+        )}
+      </View>
     </View>
   );
 }
@@ -182,15 +254,43 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 20,
   },
+  notificationStatusBlock: {
+    marginBottom: 40,
+    alignItems: "center",
+    backgroundColor: "#f4f4f4",
+    padding: 12,
+    borderRadius: 8,
+    width: "100%",
+    maxWidth: 300,
+    gap: 8,
+  },
+  notificationLabel: {
+    fontSize: 14,
+    color: "#333",
+  },
+  notificationBadge: {
+    fontWeight: "bold",
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#666",
+    marginBottom: 5,
+  },
+  timerText: {
+    fontSize: 48,
+    fontWeight: "300",
+    fontVariant: ["tabular-nums"],
+    marginVertical: 10,
+  },
   paragraph: {
     fontSize: 18,
     textAlign: "center",
-    marginTop: 20,
-    marginBottom: 12,
+    marginVertical: 20,
   },
-  notificationBox: {
+  buttonContainer: {
+    flexDirection: "row",
+    gap: 12,
     alignItems: "center",
-    justifyContent: "center",
-    marginVertical: 12,
   },
 });

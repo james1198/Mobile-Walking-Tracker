@@ -1,15 +1,14 @@
 {
   "expo": {
-    "name": "Walk Tracker Privacy",
-    "slug": "walk-tracker-privacy",
+    "name": "SOFT211",
+    "slug": "SOFT211",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "walktrackerprivacy",
+    "scheme": "soft211",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
-      "supportsTablet": true
+      "icon": "./assets/expo.icon"
     },
     "android": {
       "adaptiveIcon": {
@@ -37,8 +36,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to track your walking route when you start a walk.",
-          "locationWhenInUsePermission": "Allow $(PRODUCT_NAME) to access your location while you are walking.",
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location.",
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
