@@ -7,18 +7,23 @@ import { AndroidImportance } from "expo-notifications";
 import { useEffect, useState } from "react";
 import { Button, Platform, StyleSheet, Text, View } from "react-native";
 
-//this section configures how notifications are displayed 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-
-});
+//this section configures how notifications are displayed
+if (Platform.OS !== "web") {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 //this function registers for push notifications and returns the Expo push token
 async function registerForPushNotificationsAsync() {
+  if (Platform.OS === "web") {
+    return "";
+  }
+
   let token;
 //this section creates a notification channel for Android
   if (Platform.OS === "android") {
@@ -66,6 +71,11 @@ async function registerForPushNotificationsAsync() {
 }
 //this function schedules a push notification
 async function schedulePushNotification() {
+  if (Platform.OS === "web") {
+    console.warn("Notifications are not available in the browser preview.");
+    return;
+  }
+
   await Notifications.scheduleNotificationAsync({
     content: {
       title: "You've got mail! 📬",
@@ -94,6 +104,11 @@ export default function WalkScreen() {
 //this effect hook runs once when the component mounts
   useEffect(() => {
     async function getCurrentLocation() {
+      if (Platform.OS === "web") {
+        setErrorMsg("Location tracking is only available in the mobile app.");
+        return;
+      }
+
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         setErrorMsg("Permission to access location was denied");
@@ -108,6 +123,10 @@ export default function WalkScreen() {
     }
 //this function sets up push notifications
     async function setupNotification() {
+      if (Platform.OS === "web") {
+        return;
+      }
+
       registerForPushNotificationsAsync().then(
         (token) => token && setExpoPushToken(token),
       );
