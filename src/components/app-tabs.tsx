@@ -36,8 +36,8 @@ export default function AppTabs() {
       <NativeTabs.Trigger name="walk">
         <NativeTabs.Trigger.Label>Walk</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          src={require("@/assets/images/tabIcons/walk.png")}
-          renderingMode="template"
+          sf="figure.walk"
+          md="directions_walk"
         />
       </NativeTabs.Trigger>
     </NativeTabs>
