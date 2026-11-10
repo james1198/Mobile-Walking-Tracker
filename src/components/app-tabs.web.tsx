@@ -1,20 +1,11 @@
-import {
-    TabList,
-    TabListProps,
-    Tabs,
-    TabSlot,
-    TabTrigger,
-    TabTriggerSlotProps,
-} from "expo-router/ui";
+import { Colors, MaxContentWidth, Spacing } from "@/constants/theme";
+import { TabList, TabListProps, Tabs, TabSlot, TabTrigger, TabTriggerSlotProps } from "expo-router/ui";
 import { SymbolView } from "expo-symbols";
 import { Pressable, StyleSheet, useColorScheme, View } from "react-native";
-
 import { ExternalLink } from "./external-link";
 import { ThemedText } from "./themed-text";
 import { ThemedView } from "./themed-view";
-
-import { Colors, MaxContentWidth, Spacing } from "@/constants/theme";
-
+// This component renders the app tabs.
 export default function AppTabs() {
   return (
     <Tabs>
@@ -36,28 +27,30 @@ export default function AppTabs() {
   );
 }
 
+// This component renders a tab button.
 export function TabButton({
   children,
   isFocused,
+  ref: _ref,
   ...props
 }: TabTriggerSlotProps) {
-  const { ref: _ref, ...pressableProps } = props as typeof props & {
-    ref?: unknown;
-  };
-
+  // This section renders the tab button.
   return (
     <Pressable
-      {...pressableProps}
+      {...props}
       style={({ pressed }) => (pressed ? styles.pressed : undefined)}
     >
+      {/* This section renders the tab button view. */}
       <ThemedView
         type={isFocused ? "backgroundSelected" : "backgroundElement"}
         style={styles.tabButtonView}
       >
+        {/* This section renders the tab button text. */}
         <ThemedText
           type="small"
           themeColor={isFocused ? "text" : "textSecondary"}
         >
+          {/* This section renders the tab button label. */}
           {children}
         </ThemedText>
       </ThemedView>
@@ -65,11 +58,11 @@ export function TabButton({
   );
 }
 
+// This component renders the custom tab list.
 export function CustomTabList(props: TabListProps) {
   const scheme = useColorScheme();
-  const theme = scheme === "dark" || scheme === "light" ? scheme : "light";
-  const colors = Colors[theme];
-
+  const colors = Colors[scheme === "dark" ? "dark" : "light"];
+// This section renders the custom tab list.
   return (
     <View {...props} style={styles.tabListContainer}>
       <ThemedView type="backgroundElement" style={styles.innerContainer}>
@@ -78,7 +71,7 @@ export function CustomTabList(props: TabListProps) {
         </ThemedText>
 
         {props.children}
-
+        {/* This section renders the external link. */}
         <ExternalLink href="https://docs.expo.dev" asChild>
           <Pressable style={styles.externalPressable}>
             <ThemedText type="link">Docs</ThemedText>
@@ -93,7 +86,7 @@ export function CustomTabList(props: TabListProps) {
     </View>
   );
 }
-
+// This section defines the component styles.
 const styles = StyleSheet.create({
   tabListContainer: {
     position: "absolute",
@@ -103,6 +96,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
   },
+  // This section defines the inner container styles.
   innerContainer: {
     paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.five,
@@ -113,17 +107,21 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     maxWidth: MaxContentWidth,
   },
+  // This section defines the brand text styles.
   brandText: {
     marginRight: "auto",
   },
+  // This section defines the pressed state styles.
   pressed: {
     opacity: 0.7,
   },
+  // This section defines the tab button styles.
   tabButtonView: {
     paddingVertical: Spacing.one,
     paddingHorizontal: Spacing.three,
     borderRadius: Spacing.three,
   },
+  // This section defines the external link styles.
   externalPressable: {
     flexDirection: "row",
     justifyContent: "center",
