@@ -40,6 +40,11 @@ export default function AppTabs() {
           md="directions_walk"
         />
       </NativeTabs.Trigger>
+
+      {/* This section renders the walk details tab. */}
+      <NativeTabs.Trigger name="walk-details">
+        <NativeTabs.Trigger.Label>Walk Details</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
