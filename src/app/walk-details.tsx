@@ -27,24 +27,23 @@ function samplewalk2() {
 export default function WalkDetailsScreen() {
   const [selectedId, setSelectedId] = useState(101);
   const [errorMessage, setErrorMessage] = useState('');
-    const [mapError, setMapError] = useState('');
-  useEffect(() => {
-    let isMounted = true;
-    const updateSelectedWalk = (url: string) => {
+  const [mapError, setMapError] = useState('');
+
+  const updateSelectedWalk = (url: string) => {
     const parsedUrl = Linking.parse(url);
     console.log('Received URL:', url);
 
-    if (parsedUrl.scheme !== 'mywalks') {
-  return;
-}
+    if (parsedUrl.scheme === 'exp') {
+      return;
+    }
 
-if (parsedUrl.hostname !== 'walk') {
-  setErrorMessage('This link cannot be opened by the Mobile Walking Tracker.');
-  return;
-}
+    if (parsedUrl.scheme !== 'mywalks' || parsedUrl.hostname !== 'walk') {
+      setErrorMessage('This link cannot be opened by the Mobile Walking Tracker.');
+      return;
+    }
 
     const walkId = parsedUrl.path?.split("/").filter(Boolean)[0];
-      const id = Number(walkId);
+    const id = Number(walkId);
 
     if (!walkId) {
       setErrorMessage('A walk ID is required.');
@@ -54,7 +53,11 @@ if (parsedUrl.hostname !== 'walk') {
       setSelectedId(id);
       setErrorMessage('');
     }
-    };
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+
     Linking.getInitialURL().then((url: string | null) => {
       if (isMounted && url) {
         updateSelectedWalk(url);
@@ -70,51 +73,51 @@ if (parsedUrl.hostname !== 'walk') {
       subscription.remove();
     };
   }, []);
-    const activeWalk = samplewalks.find((walk) => walk.id === selectedId);
-const openGoogleMaps = async () => {
-  if (!activeWalk) {
-    return;
-  }
 
-  const url = `https://www.google.com/maps/search/?api=1&query=${activeWalk.startingLatitude},${activeWalk.startingLongitude}`;
+  const activeWalk = samplewalks.find((walk) => walk.id === selectedId);
 
-  try {
-    const supported = await Linking.canOpenURL(url);
+  const openGoogleMaps = async () => {
+    if (!activeWalk) return;
 
-    if (supported) {
-      await Linking.openURL(url);
-      setMapError('');
-    } else {
+    const url = `https://www.google.com/maps/search/?api=1&query=${activeWalk.startingLatitude},${activeWalk.startingLongitude}`;
+
+    try {
+      const supported = await Linking.canOpenURL(url);
+
+      if (supported) {
+        await Linking.openURL(url);
+        setMapError('');
+      } else {
+        setMapError('Unable to open Google Maps.');
+      }
+    } catch {
       setMapError('Unable to open Google Maps.');
     }
-  } catch {
-    setMapError('Unable to open Google Maps.');
-  }
-};
-const openStreetMap = async () => {
-  if (!activeWalk) {
-    return;
-  }
+  };
 
-  const url = `https://www.openstreetmap.org/?mlat=${activeWalk.startingLatitude}&mlon=${activeWalk.startingLongitude}#map=15/${activeWalk.startingLatitude}/${activeWalk.startingLongitude}`;
+  const openStreetMap = async () => {
+    if (!activeWalk) return;
 
-  try {
-    const supported = await Linking.canOpenURL(url);
+    const url = `https://www.openstreetmap.org/?mlat=${activeWalk.startingLatitude}&mlon=${activeWalk.startingLongitude}#map=15/${activeWalk.startingLatitude}/${activeWalk.startingLongitude}`;
 
-    if (supported) {
-      await Linking.openURL(url);
-      setMapError('');
-    } else {
+    try {
+      const supported = await Linking.canOpenURL(url);
+
+      if (supported) {
+        await Linking.openURL(url);
+        setMapError('');
+      } else {
+        setMapError('Unable to open OpenStreetMap.');
+      }
+    } catch {
       setMapError('Unable to open OpenStreetMap.');
     }
-  } catch {
-    setMapError('Unable to open OpenStreetMap.');
-  }
-};
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Walk Details</Text>
+
       {errorMessage ? (
         <Text style={styles.walkNotFound}>{errorMessage}</Text>
       ) : activeWalk ? (
@@ -124,17 +127,18 @@ const openStreetMap = async () => {
           <Text style={styles.startingLatitude}>Starting Latitude: {activeWalk.startingLatitude}</Text>
           <Text style={styles.startingLongitude}>Starting Longitude: {activeWalk.startingLongitude}</Text>
           <Text style={styles.status}>Status: {activeWalk.status}</Text>
+
           <Button title="Open Google Maps" onPress={openGoogleMaps} />
-          <Button title="Open OpenStreetMap" onPress={openStreetMap} /> 
+          <Button title="Open OpenStreetMap" onPress={openStreetMap} />
+
           {mapError ? <Text style={styles.mapError}>{mapError}</Text> : null}
         </>
       ) : (
-        <Text style={styles.walkNotFound}>{errorMessage || 'Walk not found.'}</Text>
+        <Text style={styles.walkNotFound}>Walk not found.</Text>
       )}
     </View>
   );
 }
-
 // Styles for the WalkDetailsScreen component
 const styles = StyleSheet.create({
   container: {

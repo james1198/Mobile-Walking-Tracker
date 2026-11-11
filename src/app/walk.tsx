@@ -1,11 +1,13 @@
 import PermissionsButton from "@/components/permissions-button";
+import { ThemedText } from "@/components/themed-text";
 import WalkMap from "@/components/walk-map";
+import { useTheme } from "@/hooks/use-theme";
 import Constants from "expo-constants";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
 import { AndroidImportance } from "expo-notifications";
 import { useEffect, useState } from "react";
-import { Button, Platform, StyleSheet, Text, View } from "react-native";
+import { Button, Platform, StyleSheet, View } from "react-native";
 
 //this section configures how notifications are displayed
 if (Platform.OS !== "web") {
@@ -90,6 +92,7 @@ async function schedulePushNotification() {
 }
 //this component renders the walk screen
 export default function WalkScreen() {
+  const theme = useTheme();
   const [location, setLocation] = useState<Location.LocationObject | null>(
     null,
   );
@@ -172,17 +175,19 @@ export default function WalkScreen() {
 
 //this section returns the JSX for the walk screen
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <PermissionsButton title="Start Walk" />
-      <Text style={styles.paragraph}>{text}</Text>
-      <WalkMap />
-      <View style={styles.notificationInfo}>
-        <Text>Your expo push token: {expoPushToken}</Text>
-        <Text>{`Channels: ${JSON.stringify(
+      <ThemedText style={styles.paragraph}>{text}</ThemedText>
+      <View style={[styles.walkMap, { backgroundColor: theme.backgroundElement }]}>
+        <WalkMap />
+      </View>
+      <View style={[styles.notificationInfo, { backgroundColor: theme.background }]}>
+        <ThemedText themeColor="text">Your expo push token: {expoPushToken}</ThemedText>
+        <ThemedText themeColor="text">{`Channels: ${JSON.stringify(
           channels.map((c) => c.id),
           null,
           2,
-        )}`}</Text>
+        )}`}</ThemedText>
         <Button
           title="Press to schedule a notification"
           onPress={async () => {
@@ -190,14 +195,14 @@ export default function WalkScreen() {
           }}
         />
         {/* this section displays the details of the received notification */}
-        <Text>
+        <ThemedText themeColor="text">
           Title: {notification && notification.request.content.title}{" "}
-        </Text>
-        <Text>Body: {notification && notification.request.content.body}</Text>
-        <Text>
+        </ThemedText>
+        <ThemedText themeColor="text">Body: {notification && notification.request.content.body}</ThemedText>
+        <ThemedText themeColor="text">
           Data:{" "}
           {notification && JSON.stringify(notification.request.content.data)}
-        </Text>
+        </ThemedText>
       </View>
     </View>
   );
@@ -215,10 +220,20 @@ const styles = StyleSheet.create({
     fontSize: 18,
     textAlign: "center",
     marginTop: 20,
+    paddingHorizontal: 16,
+    color: "#ffffff",
   },
   //this style defines the layout of the notification information
   notificationInfo: {
     alignItems: "center",
     justifyContent: "center",
+    padding: 16,
+    gap: 8,
+  },
+  walkMap: {
+    flex: 1,
+  },
+  walkMapContainer: {
+    flex: 1,
   },
 });
