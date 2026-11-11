@@ -32,11 +32,16 @@ export default function WalkDetailsScreen() {
     let isMounted = true;
     const updateSelectedWalk = (url: string) => {
     const parsedUrl = Linking.parse(url);
+    console.log('Received URL:', url);
 
-    if (parsedUrl.scheme !== 'mywalks' || parsedUrl.hostname !== 'walk') {
-      setErrorMessage('This link cannot be opened by the Mobile Walking Tracker.');
-      return;
-    }
+    if (parsedUrl.scheme !== 'mywalks') {
+  return;
+}
+
+if (parsedUrl.hostname !== 'walk') {
+  setErrorMessage('This link cannot be opened by the Mobile Walking Tracker.');
+  return;
+}
 
     const walkId = parsedUrl.path?.split("/").filter(Boolean)[0];
       const id = Number(walkId);
@@ -86,12 +91,33 @@ const openGoogleMaps = async () => {
     setMapError('Unable to open Google Maps.');
   }
 };
+const openStreetMap = async () => {
+  if (!activeWalk) {
+    return;
+  }
 
+  const url = `https://www.openstreetmap.org/?mlat=${activeWalk.startingLatitude}&mlon=${activeWalk.startingLongitude}#map=15/${activeWalk.startingLatitude}/${activeWalk.startingLongitude}`;
+
+  try {
+    const supported = await Linking.canOpenURL(url);
+
+    if (supported) {
+      await Linking.openURL(url);
+      setMapError('');
+    } else {
+      setMapError('Unable to open OpenStreetMap.');
+    }
+  } catch {
+    setMapError('Unable to open OpenStreetMap.');
+  }
+};
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Walk Details</Text>
-      {activeWalk ? (
+      {errorMessage ? (
+        <Text style={styles.walkNotFound}>{errorMessage}</Text>
+      ) : activeWalk ? (
         <>
           <Text style={styles.walkId}>Walk ID: {activeWalk.id}</Text>
           <Text style={styles.dateAndTime}>Date and Time: {activeWalk.dateAndTime}</Text>
@@ -99,6 +125,7 @@ const openGoogleMaps = async () => {
           <Text style={styles.startingLongitude}>Starting Longitude: {activeWalk.startingLongitude}</Text>
           <Text style={styles.status}>Status: {activeWalk.status}</Text>
           <Button title="Open Google Maps" onPress={openGoogleMaps} />
+          <Button title="Open OpenStreetMap" onPress={openStreetMap} /> 
           {mapError ? <Text style={styles.mapError}>{mapError}</Text> : null}
         </>
       ) : (
