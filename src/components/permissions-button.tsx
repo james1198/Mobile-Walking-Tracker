@@ -5,6 +5,11 @@ import { Button, Platform, StyleSheet, View } from "react-native";
 const LOCATION_TASK_NAME = "background-location-task";
 // This section defines the permission request function.
 const requestPermissions = async () => {
+  if (Platform.OS === "web") {
+    console.warn("Location tracking is not available in the browser preview.");
+    return;
+  }
+
   const { status: foregroundStatus } =
     await Location.requestForegroundPermissionsAsync();
   // This section logs the foreground permission status.
@@ -14,35 +19,17 @@ const requestPermissions = async () => {
     return;
   }
 
-  // This section handles browser permissions.
-  console.log("current platform", Platform.OS);
-  if (Platform.OS === "web") {
-    await Location.watchPositionAsync(
-      {
-        accuracy: Location.Accuracy.Balanced,
-      },
-      // This section logs the foreground location.
-      (location) => {
-        console.log("foreground location", location);
-      },
-    );
-    // This section stops the permission request for web.
-    return;
-  } else {
-    if (foregroundStatus === "granted") {
-      // This section requests background permissions.
-      const { status: backgroundStatus } =
-        await Location.requestBackgroundPermissionsAsync();
-      console.log("backgroundStatus", backgroundStatus);
-      // This section logs the background permission status.
+  // This section requests background permissions.
+  const { status: backgroundStatus } =
+    await Location.requestBackgroundPermissionsAsync();
+  console.log("backgroundStatus", backgroundStatus);
+  // This section logs the background permission status.
 
-      // This section starts background location updates if permissions are granted.
-      if (backgroundStatus === "granted") {
-        await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
-          accuracy: Location.Accuracy.Balanced,
-        });
-      }
-    }
+  // This section starts background location updates if permissions are granted.
+  if (backgroundStatus === "granted") {
+    await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+      accuracy: Location.Accuracy.Balanced,
+    });
   }
 };
 
@@ -54,25 +41,30 @@ const PermissionsButton = ({ title }: { title?: string | null }) => (
       title={
         title !== null && title !== undefined
           ? title
-          : `Enable ${Platform.OS === "web" ? "foreground" : "background"} location`
+          : Platform.OS === "web"
+            ? "Location unavailable on web"
+            : "Enable background location"
       }
+      disabled={Platform.OS === "web"}
     />
   </View>
 );
 
 // This section defines the background location task.
-TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
-  if (error) {
-    // Error occurred - check `error.message` for more details.
-    return;
-  }
-  if (data) {
-    const { locations } = data as { locations: Location.LocationObject[] };
-    // do something with the locations captured in the background
-    // This section logs the background locations.
-    console.log(locations);
-  }
-});
+if (Platform.OS !== "web") {
+  TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
+    if (error) {
+      // Error occurred - check `error.message` for more details.
+      return;
+    }
+    if (data) {
+      const { locations } = data as { locations: Location.LocationObject[] };
+      // do something with the locations captured in the background
+      // This section logs the background locations.
+      console.log(locations);
+    }
+  });
+}
 // This section defines the component styles.
 const styles = StyleSheet.create({
   container: {
