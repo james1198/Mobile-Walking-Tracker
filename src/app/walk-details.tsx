@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from "react";
+import { Linking, StyleSheet, Text, View } from 'react-native';
 /// WalkDetailsScreen component displays the details of a specific walk, 
 // including its ID, date and time, starting coordinates, and tracking status.
 const samplewalks = [samplewalk1(), samplewalk2()];
@@ -22,7 +23,14 @@ function samplewalk2() {
 }
 
 export default function WalkDetailsScreen() {
-  const selectedId = 101;
+  const [selectedId, setSelectedId] = useState(101);
+  useEffect(() => {
+  Linking.getInitialURL().then((url) => {
+    if (url) {
+      console.log("App opened with link:", url);
+    }
+  });
+}, []);
   const activeWalk = samplewalks.find((walk) => walk.id === selectedId);
 
   return (
