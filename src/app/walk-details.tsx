@@ -1,5 +1,7 @@
+import * as Linking from 'expo-linking';
 import { useEffect, useState } from "react";
-import { Linking, StyleSheet, Text, View } from 'react-native';
+import { Button, StyleSheet, Text, View } from 'react-native';
+
 /// WalkDetailsScreen component displays the details of a specific walk, 
 // including its ID, date and time, starting coordinates, and tracking status.
 const samplewalks = [samplewalk1(), samplewalk2()];
@@ -24,14 +26,67 @@ function samplewalk2() {
 
 export default function WalkDetailsScreen() {
   const [selectedId, setSelectedId] = useState(101);
+  const [errorMessage, setErrorMessage] = useState('');
+    const [mapError, setMapError] = useState('');
   useEffect(() => {
-  Linking.getInitialURL().then((url) => {
-    if (url) {
-      console.log("App opened with link:", url);
+    let isMounted = true;
+    const updateSelectedWalk = (url: string) => {
+    const parsedUrl = Linking.parse(url);
+
+    if (parsedUrl.scheme !== 'mywalks' || parsedUrl.hostname !== 'walk') {
+      setErrorMessage('This link cannot be opened by the Mobile Walking Tracker.');
+      return;
     }
-  });
-}, []);
-  const activeWalk = samplewalks.find((walk) => walk.id === selectedId);
+
+    const walkId = parsedUrl.path?.split("/").filter(Boolean)[0];
+      const id = Number(walkId);
+
+    if (!walkId) {
+      setErrorMessage('A walk ID is required.');
+    } else if (!Number.isFinite(id) || !samplewalks.some((walk) => walk.id === id)) {
+      setErrorMessage('Walk not found. Please check the walk ID.');
+    } else {
+      setSelectedId(id);
+      setErrorMessage('');
+    }
+    };
+    Linking.getInitialURL().then((url: string | null) => {
+      if (isMounted && url) {
+        updateSelectedWalk(url);
+      }
+    });
+
+    const subscription = Linking.addEventListener("url", (event: { url: string }) => {
+      updateSelectedWalk(event.url);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.remove();
+    };
+  }, []);
+    const activeWalk = samplewalks.find((walk) => walk.id === selectedId);
+const openGoogleMaps = async () => {
+  if (!activeWalk) {
+    return;
+  }
+
+  const url = `https://www.google.com/maps/search/?api=1&query=${activeWalk.startingLatitude},${activeWalk.startingLongitude}`;
+
+  try {
+    const supported = await Linking.canOpenURL(url);
+
+    if (supported) {
+      await Linking.openURL(url);
+      setMapError('');
+    } else {
+      setMapError('Unable to open Google Maps.');
+    }
+  } catch {
+    setMapError('Unable to open Google Maps.');
+  }
+};
+
 
   return (
     <View style={styles.container}>
@@ -43,9 +98,11 @@ export default function WalkDetailsScreen() {
           <Text style={styles.startingLatitude}>Starting Latitude: {activeWalk.startingLatitude}</Text>
           <Text style={styles.startingLongitude}>Starting Longitude: {activeWalk.startingLongitude}</Text>
           <Text style={styles.status}>Status: {activeWalk.status}</Text>
+          <Button title="Open Google Maps" onPress={openGoogleMaps} />
+          {mapError ? <Text style={styles.mapError}>{mapError}</Text> : null}
         </>
       ) : (
-        <Text style={styles.walkNotFound}>Walk not found.</Text>
+        <Text style={styles.walkNotFound}>{errorMessage || 'Walk not found.'}</Text>
       )}
     </View>
   );
@@ -104,6 +161,13 @@ const styles = StyleSheet.create({
   },
   // Styles for the walk not found text
   walkNotFound: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 25,
+  },
+  // Styles for the map error text
+  mapError: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
