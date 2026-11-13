@@ -16,6 +16,36 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npx expo start
    ```
 
+## Test a walk deep link
+
+The walk details route accepts `walkId` as a query parameter. Choose the link format for the app you have installed.
+
+### Expo Go
+
+Expo Go does not register the app's `mywalks` scheme. Start Metro with `npm start`, then open the route through Expo Go using the host and port shown by Metro:
+
+```text
+exp://<metro-host>:8082/--/walk-details?walkId=101
+```
+
+Open that link with:
+
+```bash
+npx uri-scheme open "exp://<metro-host>:8082/--/walk-details?walkId=101" --android
+```
+
+Replace `<metro-host>` with the IP address displayed in the Metro URL when testing on a device.
+
+### Development build
+
+To test the app's custom scheme, install and launch a native development build that was built with the `mywalks` scheme. Then open:
+
+```bash
+npx uri-scheme open "mywalks://walk-details?walkId=101" --android
+```
+
+Walk IDs `101` and `102` are available in the sample data.
+
 In the output, you'll find options to open the app in a
 
 - [development build](https://docs.expo.dev/develop/development-builds/introduction/)

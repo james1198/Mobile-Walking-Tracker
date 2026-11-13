@@ -112,17 +112,30 @@ export default function WalkScreen() {
         return;
       }
 
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setErrorMsg("Permission to access location was denied");
-        return;
-      }
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          setErrorMsg("Permission to access location was denied");
+          return;
+        }
 
-      let location = await Location.getCurrentPositionAsync({});
-      console.log(location);
-      const { latitude, longitude } = location.coords;
-      console.log(latitude, longitude);
-      setLocation(location);
+        const servicesEnabled = await Location.hasServicesEnabledAsync();
+        if (!servicesEnabled) {
+          setErrorMsg("Enable location services on your device to get your location.");
+          return;
+        }
+
+        const lastKnownLocation = await Location.getLastKnownPositionAsync();
+        if (lastKnownLocation) {
+          setLocation(lastKnownLocation);
+        }
+
+        const location = await Location.getCurrentPositionAsync({});
+        setLocation(location);
+      } catch (error) {
+        console.error("Failed to get the current location:", error);
+        setErrorMsg("Could not get your location. Check your device location settings and try again.");
+      }
     }
 //this function sets up push notifications
     async function setupNotification() {
@@ -162,7 +175,7 @@ export default function WalkScreen() {
   }, []);
 
 //this section determines the text to display based on the error message or location
-  let text = "Waiting...";
+  let text = "Waiting for a GPS location...";
   if (errorMsg) {
     text = errorMsg;
   } else if (location) {

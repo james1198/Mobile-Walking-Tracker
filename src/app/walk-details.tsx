@@ -1,5 +1,6 @@
 import * as Linking from 'expo-linking';
-import { useEffect, useState } from "react";
+import { useLocalSearchParams } from 'expo-router';
+import { useState } from "react";
 import { Button, StyleSheet, Text, View } from 'react-native';
 
 /// WalkDetailsScreen component displays the details of a specific walk, 
@@ -25,56 +26,25 @@ function samplewalk2() {
 }
 
 export default function WalkDetailsScreen() {
-  const [selectedId, setSelectedId] = useState(101);
-  const [errorMessage, setErrorMessage] = useState('');
   const [mapError, setMapError] = useState('');
-
-  const updateSelectedWalk = (url: string) => {
-    const parsedUrl = Linking.parse(url);
-    console.log('Received URL:', url);
-
-    if (parsedUrl.scheme === 'exp') {
-      return;
-    }
-
-    if (parsedUrl.scheme !== 'mywalks' || parsedUrl.hostname !== 'walk') {
-      setErrorMessage('This link cannot be opened by the Mobile Walking Tracker.');
-      return;
-    }
-
-    const walkId = parsedUrl.path?.split("/").filter(Boolean)[0];
-    const id = Number(walkId);
-
-    if (!walkId) {
-      setErrorMessage('A walk ID is required.');
-    } else if (!Number.isFinite(id) || !samplewalks.some((walk) => walk.id === id)) {
-      setErrorMessage('Walk not found. Please check the walk ID.');
-    } else {
-      setSelectedId(id);
-      setErrorMessage('');
-    }
-  };
-
-  useEffect(() => {
-    let isMounted = true;
-
-    Linking.getInitialURL().then((url: string | null) => {
-      if (isMounted && url) {
-        updateSelectedWalk(url);
-      }
-    });
-
-    const subscription = Linking.addEventListener("url", (event: { url: string }) => {
-      updateSelectedWalk(event.url);
-    });
-
-    return () => {
-      isMounted = false;
-      subscription.remove();
-    };
-  }, []);
-
-  const activeWalk = samplewalks.find((walk) => walk.id === selectedId);
+  const { walkId: walkIdParam } = useLocalSearchParams<{
+    walkId?: string | string[];
+  }>();
+  const walkId = Array.isArray(walkIdParam) ? walkIdParam[0] : walkIdParam;
+  const selectedId = walkId === undefined ? 101 : Number(walkId);
+  const activeWalk = walkId?.trim()
+    ? samplewalks.find((walk) => walk.id === selectedId)
+    : walkId === undefined
+      ? samplewalks[0]
+      : undefined;
+  const errorMessage =
+    walkId === undefined
+      ? ''
+      : !walkId.trim()
+        ? 'A walk ID is required.'
+        : activeWalk
+          ? ''
+          : 'Walk not found. Please check the walk ID.';
 
   const openGoogleMaps = async () => {
     if (!activeWalk) return;
