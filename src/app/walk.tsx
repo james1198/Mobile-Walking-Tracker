@@ -8,6 +8,7 @@ import * as Notifications from "expo-notifications";
 import { AndroidImportance } from "expo-notifications";
 import { useEffect, useState } from "react";
 import { Button, Platform, StyleSheet, View } from "react-native";
+import { Link } from "../../.expo/types/router";
 
 //this section configures how notifications are displayed
 if (Platform.OS !== "web") {
@@ -216,6 +217,9 @@ export default function WalkScreen() {
           Data:{" "}
           {notification && JSON.stringify(notification.request.content.data)}
         </ThemedText>
+        <Link href="/walk-notes">
+          <ThemedText>Go to Walk Notes</ThemedText>
+        </Link>
       </View>
     </View>
   );
