@@ -39,11 +39,9 @@ export default function WalkMap() {
 // This section defines the component styles.
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    width: "80%",
-    minHeight: 240,
-    justifyContent: "center",
-    alignItems: "center",
+  flex: 1,
+  width: "100%",
+  minHeight: 240,
   },
   map: {
     width: "100%",

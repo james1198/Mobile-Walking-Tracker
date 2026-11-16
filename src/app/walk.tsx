@@ -249,7 +249,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   walkMap: {
-    flex: 1,
+    height: 300,
+    width: "100%",
+    alignSelf: "stretch",
+    overflow: "hidden",
   },
   walkMapContainer: {
     flex: 1,
