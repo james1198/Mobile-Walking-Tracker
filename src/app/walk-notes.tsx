@@ -21,12 +21,20 @@ export default function WalkNotes() {
       if (savedNotes !== null) {
         const storedNotes = JSON.parse(savedNotes);
 
-        const convertedNotes:WalkNote[] = storedNotes.map((note: any) => ({
-          id: note.id || Date.now().toString(),
-          text: note.text || "",
-          createdAt: note.createdAt || new Date().toISOString(),
-          syncStatus: "pending",
-        }));
+    const convertedNotes: WalkNote[] = storedNotes.map(
+      (note: string | WalkNote, index: number) => {
+        if (typeof note === "string") {
+          return {
+            id: `old-${index}`,
+            text: note,
+            createdAt: new Date().toLocaleString(),
+            syncStatus: "pending",
+          };
+        }
+
+        return note;
+      }
+    );
         if (Array.isArray(convertedNotes)) {
           setNotes(convertedNotes);
         }
@@ -89,6 +97,7 @@ export default function WalkNotes() {
             await AsyncStorage.setItem("walkNotes", JSON.stringify(updatedNotes));
             setNotes(updatedNotes);
             setNoteText("");
+            setStatusMessage("Note saved on this device.");
             Keyboard.dismiss();
           } catch (error) {
             console.error("Error saving notes:", error);
