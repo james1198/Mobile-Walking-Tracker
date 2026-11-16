@@ -203,7 +203,6 @@ export default function WalkScreen() {
         />
       </View>
         <View style={[styles.notificationInfo, { backgroundColor: theme.background }]}>
-          <ThemedText themeColor="text">Your expo push token: {expoPushToken}</ThemedText>
           <ThemedText themeColor="text">{`Channels: ${JSON.stringify(
             channels.map((c) => c.id),
             null,
