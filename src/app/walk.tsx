@@ -195,9 +195,13 @@ export default function WalkScreen() {
         <Link href="/walk-notes">
           <ThemedText>Go to Walk Notes</ThemedText>
         </Link>
-        <View style={[styles.walkMap, { backgroundColor: theme.backgroundElement }]}>
-          <WalkMap />
-        </View>
+       <View style={[styles.walkMap, { backgroundColor: theme.backgroundElement }]}>
+        <ThemedText>{text}</ThemedText>
+        <WalkMap
+          latitude={location?.coords.latitude}
+          longitude={location?.coords.longitude}
+        />
+      </View>
         <View style={[styles.notificationInfo, { backgroundColor: theme.background }]}>
           <ThemedText themeColor="text">Your expo push token: {expoPushToken}</ThemedText>
           <ThemedText themeColor="text">{`Channels: ${JSON.stringify(

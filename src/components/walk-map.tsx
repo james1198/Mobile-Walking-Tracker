@@ -6,7 +6,13 @@ if (Platform.OS !== "web") {
 }
 
 // This component renders the map for the walk screen.
-export default function WalkMap() {
+export default function WalkMap({
+  latitude,
+  longitude,
+}: {
+  latitude?: number;
+  longitude?: number;
+}) {
   if (Platform.OS === "web") {
     return (
       <View style={styles.container}>
@@ -19,16 +25,21 @@ export default function WalkMap() {
   }
 
   return (
-    <View style={styles.container}>
-      {/* This section renders the map view. */}
-      {MapView && (
+<View
+  style={styles.container}
+  onLayout={(event) => {
+    const { width, height } = event.nativeEvent.layout;
+    console.log("Map container size:", width, height);
+  }}
+>
+      {MapView && latitude !== null && longitude !== null && (
         <MapView
           style={styles.map}
           initialRegion={{
-            latitude: 37.78825,
-            longitude: -122.4324,
-            latitudeDelta: 0.0922,
-            longitudeDelta: 0.0421,
+            latitude: latitude!,
+            longitude: longitude!,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
           }}
         />
       )}
@@ -44,8 +55,8 @@ const styles = StyleSheet.create({
   minHeight: 240,
   },
   map: {
+    flex: 1,
     width: "100%",
-    height: "100%",
   },
   webMessage: {
     textAlign: "center",
