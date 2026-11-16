@@ -10,7 +10,7 @@ type WalkNote = {
 };
 
 export default function WalkNotes() {
-  const [notes, setNotes] = useState<string[]>([]);
+  const [notes, setNotes] = useState<WalkNote[]>([]);
   const [noteText, setNoteTextState] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   useEffect(() => {
@@ -19,7 +19,17 @@ export default function WalkNotes() {
       const savedNotes = await AsyncStorage.getItem("walkNotes");
 
       if (savedNotes !== null) {
-        setNotes(JSON.parse(savedNotes));
+        const storedNotes = JSON.parse(savedNotes);
+
+        const convertedNotes:WalkNote[] = storedNotes.map((note: any) => ({
+          id: note.id || Date.now().toString(),
+          text: note.text || "",
+          createdAt: note.createdAt || new Date().toISOString(),
+          syncStatus: "pending",
+        }));
+        if (Array.isArray(convertedNotes)) {
+          setNotes(convertedNotes);
+        }
       }
     } catch (error) {
       console.error("Error loading notes:", error);
@@ -73,7 +83,7 @@ export default function WalkNotes() {
             syncStatus: "pending",
           };
 
-          const updatedNotes = [...notes, newNote.text];
+          const updatedNotes = [...notes, newNote];
 
           try {
             await AsyncStorage.setItem("walkNotes", JSON.stringify(updatedNotes));
@@ -95,11 +105,15 @@ export default function WalkNotes() {
       <Text style={{ color: "#FFFFFF", marginTop: 10 }}>
         {statusMessage}
       </Text>
-      {notes.map((note, index) => (
-        <Text key={index} style={{ color: "#FFFFFF", marginTop: 10 }}>
-          {note}
-        </Text>
-      ))}
+      {notes.map((note) => (
+  <View key={note.id} style={{ marginTop: 10 }}>
+    <Text style={{ color: "#FFFFFF" }}>{note.text}</Text>
+    <Text style={{ color: "#AAAAAA" }}>{note.createdAt}</Text>
+    <Text style={{ color: "#AAAAAA" }}>
+      Status: {note.syncStatus}
+    </Text>
+  </View>
+))}
     </View>
   );
 }
